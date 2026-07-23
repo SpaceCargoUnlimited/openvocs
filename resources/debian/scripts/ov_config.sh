@@ -118,6 +118,11 @@ CWD=$PWD
 
 IP=$1
 
+BIND_HOST=$IP
+if [ "X" != "X$3" ]; then
+    BIND_HOST=$3
+fi
+
 DIR_HTML="/srv/openvocs/HTML"
 DIR_CONFIG="/etc/openvocs"
 
@@ -227,6 +232,10 @@ generate_config_ice_proxy() {
             \"host\" : \"$ICE_PROXY_EXTERNAL_HOST\",
             \"port\" : $ICE_PROXY_EXTERNAL_PORT,
             \"type\" : \"UDP\"
+       },
+       \"bind\" :
+       {
+            \"host\" : \"$BIND_HOST\"
        },
        \"internal\" :
        {
