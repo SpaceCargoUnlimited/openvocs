@@ -239,7 +239,7 @@ generate_config_ice_proxy() {
        },
        \"internal\" :
        {
-            \"host\" : \"$ICE_PROXY_EXTERNAL_HOST\",
+            \"host\" : \"$BIND_HOST\",
             \"port\" : 0,
             \"type\" : \"UDP\"
        },

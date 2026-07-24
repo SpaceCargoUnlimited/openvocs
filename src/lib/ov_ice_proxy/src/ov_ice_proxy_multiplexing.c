@@ -4479,7 +4479,8 @@ ov_ice_proxy_multiplexing_create(ov_ice_proxy_generic_config config) {
     if (!ov_ice_string_fill_random((char *)self->candidate.foundation, 32))
         goto error;
 
-    memcpy(self->candidate.addr, self->local.host, OV_HOST_NAME_MAX);
+    memcpy(self->candidate.addr, self->public.config.external.host,
+           OV_HOST_NAME_MAX);
     self->candidate.port = self->local.port;
 
     self->candidate.string = ov_ice_candidate_to_string(&self->candidate);
