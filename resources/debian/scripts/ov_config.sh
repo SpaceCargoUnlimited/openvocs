@@ -48,7 +48,7 @@ function setup_sip_gateway() {
             },
             \"reconnect_interval_secs\": 5,
             \"local_sip_tcp_socket\": {
-                \"host\": \"$IP\",
+                \"host\": \"$BIND_HOST\",
                 \"port\": 5060,
                 \"type\": \"TCP\"
             }
@@ -342,7 +342,7 @@ generate_config_ov_vocs() {
          {
            \"manager\" :
            {
-             \"host\" : \"$SIP_HOST\",
+             \"host\" : \"$BIND_HOST\",
              \"type\" : \"TCP\",
              \"port\" : $SIP_PORT
            }
@@ -354,7 +354,7 @@ generate_config_ov_vocs() {
          {
            \"manager\" :
            {
-             \"host\" : \"$SIP_HOST\",
+             \"host\" : \"$BIND_HOST\",
              \"type\" : \"TCP\",
              \"port\" : $SIP_STATIC_PORT
            }
