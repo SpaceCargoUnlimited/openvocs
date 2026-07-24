@@ -522,7 +522,7 @@ function generate_certificates() {
    localityName    = Berlin
    organizationName  = DLR e.V.
    organizationalUnitName=openvocs
-   commonName      = $IP self signed for ov.test
+   commonName      = $IP
    emailAddress    = dlr@openvocs.de
    
    [ req_ext ]
