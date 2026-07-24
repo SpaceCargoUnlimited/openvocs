@@ -2603,26 +2603,12 @@ static bool io_stun_request(ov_ice_proxy *self, uint8_t *buffer, size_t size,
 
     Pair *pair = get_pair_by_remote(stream, remote);
 
-    ov_log_error("DEBUG lookup for %s:%i found %p, pairs count %llu",
-                 remote->host, remote->port, (void *)pair,
-                 (unsigned long long)ov_node_count(stream->pairs));
-
     if (!pair) {
 
         pair = stream_add_peer_reflexive_pair(stream, remote, priority);
 
-        ov_log_error("DEBUG after add pairs count %llu",
-                     (unsigned long long)ov_node_count(stream->pairs));
-
         stream_order(stream);
-
-        ov_log_error("DEBUG after order pairs count %llu",
-                     (unsigned long long)ov_node_count(stream->pairs));
-
         stream_prune(stream);
-
-        ov_log_error("DEBUG after prune pairs count %llu",
-                     (unsigned long long)ov_node_count(stream->pairs));
 
         pair->state = OV_ICE_PAIR_WAITING;
     }
@@ -2797,12 +2783,21 @@ static bool io_stun_success(ov_ice_proxy *self, uint8_t *buffer, size_t size,
 
         /* We received some peer reflexive response */
 
-        pair = stream_add_peer_reflexive_pair(stream, remote, priority);
+        Pair *existing = get_pair_by_remote(stream, remote);
 
-        OV_ASSERT(pair);
+        if (existing) {
 
-        stream_order(stream);
-        stream_prune(stream);
+            pair = existing;
+
+        } else {
+
+            pair = stream_add_peer_reflexive_pair(stream, remote, priority);
+
+            OV_ASSERT(pair);
+
+            stream_order(stream);
+            stream_prune(stream);
+        }
     }
 
     pair->state = OV_ICE_PAIR_SUCCESS;
