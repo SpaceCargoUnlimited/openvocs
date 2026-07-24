@@ -48,6 +48,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %dir /etc/openvocs
 /etc/openvocs/ov_config.sh
+/etc/openvocs/ov_letsencrypt.sh
 %config /etc/openvocs/certificate
 %config /etc/openvocs/ov_mc_alsa
 %config /etc/openvocs/ov_mc_ice_proxy
