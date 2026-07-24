@@ -509,6 +509,13 @@ generate_config_ov_vocs() {
 
 function generate_certificates() {
 
+   # IP.N SAN entries require a literal IP address - if $IP is a hostname
+   # (e.g. because it is used for TLS/SNI), it must go in as DNS.N instead.
+   SAN_PRIMARY="IP.1 = $IP"
+   if ! [[ $IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+       SAN_PRIMARY="DNS.1 = $IP"
+   fi
+
    echo "#
    # Standart OpenSSL configuration file to generate the ov.test
    # certificates
@@ -539,8 +546,8 @@ function generate_certificates() {
    subjectAltName=@alt_names
    
    [ alt_names ]
-   
-   IP.1 = $IP
+
+   $SAN_PRIMARY
    IP.2 = 127.0.0.1" > $DIR_OV_MC_VOCS"/ssl.cnf"
    
    NAME=$IP
