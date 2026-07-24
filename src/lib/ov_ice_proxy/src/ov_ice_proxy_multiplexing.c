@@ -851,11 +851,9 @@ static bool send_stun_binding_request(ov_ice_proxy *self, Pair *pair) {
     uint8_t buffer[size];
     memset(buffer, 0, size);
 
-    if (!self || !pair)
+    if (!self || !pair || !pair->stream || !pair->stream->session)
         goto error;
 
-    OV_ASSERT(pair->stream);
-    OV_ASSERT(pair->stream->session);
     Stream *stream = pair->stream;
     Session *session = stream->session;
 
