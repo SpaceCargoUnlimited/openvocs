@@ -488,7 +488,7 @@ generate_config_ov_vocs() {
        },
        \"socket\":
        {
-           \"host\":\"$IP\",
+           \"host\":\"$BIND_HOST\",
            \"port\":443,
            \"type\":\"TCP\"
         }
