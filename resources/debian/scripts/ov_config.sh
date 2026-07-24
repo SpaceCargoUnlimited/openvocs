@@ -123,6 +123,14 @@ if [ "X" != "X$3" ]; then
     BIND_HOST=$3
 fi
 
+# ICE candidate addresses must be a literal IP, never a hostname - if $IP is
+# a domain name (e.g. because it is also used for TLS/SNI), pass the actual
+# public IP here explicitly.
+EXTERNAL_IP=$IP
+if [ "X" != "X$4" ]; then
+    EXTERNAL_IP=$4
+fi
+
 DIR_HTML="/srv/openvocs/HTML"
 DIR_CONFIG="/etc/openvocs"
 
@@ -147,7 +155,7 @@ ICE_PROXY_HOST=$ICE_INTERNAL_HOST
 ICE_PROXY_PORT=30000
 EVENTS_PORT=30002
 
-ICE_PROXY_EXTERNAL_HOST=$IP
+ICE_PROXY_EXTERNAL_HOST=$EXTERNAL_IP
 ICE_PROXY_EXTERNAL_PORT=30001
 
 MIXER_HOST=$ICE_INTERNAL_HOST
