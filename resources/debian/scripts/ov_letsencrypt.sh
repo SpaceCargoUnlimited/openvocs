@@ -163,15 +163,22 @@ dns_azure_zone1 = $DOMAIN:/subscriptions/<subscription id>/resourceGroups/<resou
 
     # acme (a core certbot dependency) still relies on josepy's legacy
     # ComparableX509, which in turn needs OpenSSL.crypto.X509Req via
-    # pyOpenSSL - a version dropped from recent pyOpenSSL releases, crashing
-    # certbot on startup with "module 'OpenSSL.crypto' has no attribute
-    # 'X509Req'". Pin pyOpenSSL back to a version that still has it, and let
-    # josepy resolve naturally to a version that still has ComparableX509
-    # (josepy>=2 removed it, which breaks acme the other way).
-    if ! "$CERTBOT" --version >/dev/null 2>&1; then
-        echo "certbot is broken (likely a pyOpenSSL/cryptography mismatch), pinning a compatible pyOpenSSL..."
-        pipx inject certbot 'pyOpenSSL<24' 'josepy<2' --force
-    fi
+    # pyOpenSSL - removed entirely in pyOpenSSL 26.3.0 (confirmed against
+    # pyOpenSSL's own changelog), crashing certbot on startup with "module
+    # 'OpenSSL.crypto' has no attribute 'X509Req'". josepy>=2 dropped
+    # ComparableX509 too, breaking acme the other way, so pin josepy<2.
+    # pyOpenSSL<26.3 (not just any old version) is important: pyOpenSSL
+    # 26.2.0 still has X509Req AND supports cryptography up to 48.x, which
+    # comfortably covers cryptography>=42 where not_valid_after_utc (used
+    # elsewhere in certbot) was added - an overly aggressive pyOpenSSL pin
+    # (e.g. <24) drags cryptography down below 42 and breaks that instead.
+    # Applied unconditionally (not just reactively on failure): the crash
+    # this avoids only happens during actual cert operations, not on
+    # --version, so a --version based health check would miss it, and pip
+    # may have already resolved incompatible versions before this pin
+    # existed. --force makes this safe/idempotent to always re-run.
+    echo "Ensuring pyOpenSSL/josepy are pinned to versions compatible with certbot's acme dependency..."
+    pipx inject certbot 'pyOpenSSL<26.3' 'josepy<2' --force
 
     # pipx-installed certbot has no systemd renewal timer of its own (unlike
     # the apt package), so set one up here to keep auto-renewal working.
