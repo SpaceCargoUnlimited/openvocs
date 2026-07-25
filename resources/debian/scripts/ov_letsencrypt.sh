@@ -261,6 +261,14 @@ LE_DIR="/etc/letsencrypt/live/$DOMAIN"
 ln -sf "$LE_DIR/fullchain.pem" "$DIR_OV_MC_VOCS/$DOMAIN.crt"
 ln -sf "$LE_DIR/privkey.pem" "$DIR_OV_MC_VOCS/$DOMAIN.key"
 
+# certbot's --deploy-hook only fires on an actual renewal/issuance, not when
+# it decides the existing certificate isn't due for renewal yet ("Certificate
+# not yet due for renewal; no action taken") - so restart here unconditionally
+# to make sure the running services always pick up whatever the symlinks
+# above now point to, even if this run didn't trigger a real renewal (e.g.
+# after ov_config.sh clobbered the symlinks with a fresh self signed pair).
+systemctl restart ov_mc_vocs ov_mc_ice_proxy
+
 echo ""
 echo "Certificate installed:"
 echo "  $DIR_OV_MC_VOCS/$DOMAIN.crt -> $LE_DIR/fullchain.pem"
