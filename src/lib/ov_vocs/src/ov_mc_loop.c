@@ -202,9 +202,6 @@ bool ov_mc_loop_set_volume(ov_mc_loop *self, uint8_t volume) {
     if (!self || volume > 100)
         goto error;
 
-    ov_log_error("DEBUG set_volume loop %s to %u", self->config.data.name,
-                 (unsigned)volume);
-
     self->config.data.volume = volume;
     return true;
 error:

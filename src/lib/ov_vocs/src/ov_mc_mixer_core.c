@@ -188,9 +188,6 @@ static void cb_io_multicast(void *userdata, const ov_mc_loop_data *data,
         frame->bytes.data[1] |= data->volume;
         frame->expanded.payload_type = data->volume;
 
-        ov_log_error("DEBUG cb_io_multicast loop %s data->volume=%u",
-                     data->name, (unsigned)data->volume);
-
         /* Echo cancelation == ignore all incoming frames with the SSRC
          * of the forward destination configured. */
 
@@ -537,9 +534,6 @@ static ov_frame_data *frame_data_extract_nocheck(ov_mc_mixer_core *mixer,
 
         double scale_factor = frame->expanded.payload_type;
         scale_factor /= 100.0;
-
-        ov_log_error("DEBUG frame_data_extract payload_type=%u scale_factor=%f",
-                     (unsigned)frame->expanded.payload_type, scale_factor);
 
         decoded = decode(mixer, frame, rtp_stream->codec, buflen_max);
 
