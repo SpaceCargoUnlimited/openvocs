@@ -144,46 +144,48 @@ dns_azure_zone1 = $DOMAIN:/subscriptions/<subscription id>/resourceGroups/<resou
 
     chmod 600 "$AZURE_INI"
 
+    # All of certbot-dns-azure's own dependency requirements are applied in
+    # a single pipx inject call, together with three pins forced on top of
+    # them, so pip's resolver considers every constraint in one pass instead
+    # of across several sequential --force calls (which, across repeated
+    # runs of this script, previously left the venv in an inconsistent
+    # state where forcing a version didn't actually take effect at runtime):
+    #
+    # - azure-mgmt-dns<9: certbot-dns-azure only declares
+    #   azure-mgmt-dns>=8.2.0 (no upper bound) against what its own setup.py
+    #   calls "the old style SDK, will change dramatically when they
+    #   refactor" - azure-mgmt-dns 9.x is exactly that refactor
+    #   (DnsManagementClient's constructor signature changed).
+    # - pyOpenSSL>=26.2,<26.3: OpenSSL.crypto.X509Req (needed by josepy<2's
+    #   ComparableX509, in turn needed by certbot's own acme dependency) was
+    #   removed entirely in pyOpenSSL 26.3.0 (confirmed against pyOpenSSL's
+    #   own changelog) - 26.2.0 still has it. Giving pyOpenSSL only an upper
+    #   bound is not enough: pip is then free to satisfy it with a much
+    #   older release (e.g. 23.2.0/24.0.0), which themselves cap
+    #   cryptography well below 42 and silently drag it down too, even with
+    #   an explicit cryptography>=42 pin requested alongside it. pyOpenSSL
+    #   26.2.0 specifically requires cryptography>=46.0.0,<49 (confirmed
+    #   against its PyPI metadata), which is what actually forces a
+    #   compatible cryptography rather than just hoping for one.
+    # - cryptography>=46,<49: not_valid_after_utc (used elsewhere in
+    #   certbot, e.g. when checking an existing cert's OCSP status) was
+    #   added in cryptography 42.0.0 (confirmed against cryptography's own
+    #   changelog) - >=46 matches pyOpenSSL 26.2.0's own requirement exactly
+    #   (see above), so there is no ambiguity for pip's resolver to settle
+    #   incorrectly.
+    # - josepy<2: josepy>=2 dropped ComparableX509 entirely, which breaks
+    #   certbot's acme dependency the other way. josepy itself only
+    #   declares cryptography>=1.5 (confirmed against its PyPI metadata), so
+    #   it does not conflict with the cryptography pin above.
     if ! "$CERTBOT" plugins --text 2>/dev/null | grep -q dns-azure; then
         echo "certbot-dns-azure plugin not found, installing into certbot's pipx venv..."
-        pipx inject certbot certbot-dns-azure
+        pipx inject certbot certbot-dns-azure \
+            'azure-mgmt-dns<9' 'pyOpenSSL>=26.2,<26.3' 'cryptography>=46,<49' 'josepy<2'
+    else
+        echo "Ensuring certbot's dependency versions are pinned correctly..."
+        pipx inject certbot \
+            'azure-mgmt-dns<9' 'pyOpenSSL>=26.2,<26.3' 'cryptography>=46,<49' 'josepy<2' --force
     fi
-
-    # certbot-dns-azure only declares azure-mgmt-dns>=8.2.0 (no upper bound)
-    # against what its own setup.py calls "the old style SDK, will change
-    # dramatically when they refactor" - azure-mgmt-dns 9.x is exactly that
-    # refactor (DnsManagementClient's constructor signature changed), so pin
-    # it back to the 8.x line the plugin was actually built against. This
-    # must run every time (not just on first install), since pip may have
-    # already resolved the newer 9.x before this pin ever existed.
-    if ! pipx runpip certbot show azure-mgmt-dns 2>/dev/null | grep -q '^Version: 8\.'; then
-        echo "Pinning azure-mgmt-dns to a version compatible with certbot-dns-azure..."
-        pipx inject certbot 'azure-mgmt-dns<9' --force
-    fi
-
-    # acme (a core certbot dependency) still relies on josepy's legacy
-    # ComparableX509, which in turn needs OpenSSL.crypto.X509Req via
-    # pyOpenSSL - removed entirely in pyOpenSSL 26.3.0 (confirmed against
-    # pyOpenSSL's own changelog), crashing certbot on startup with "module
-    # 'OpenSSL.crypto' has no attribute 'X509Req'". josepy>=2 dropped
-    # ComparableX509 too, breaking acme the other way, so pin josepy<2.
-    # pyOpenSSL<26.3 (not just any old version) is important: pyOpenSSL
-    # 26.2.0 still has X509Req AND supports cryptography up to 48.x, which
-    # comfortably covers cryptography>=42 where not_valid_after_utc (used
-    # elsewhere in certbot) was added - an overly aggressive pyOpenSSL pin
-    # (e.g. <24) drags cryptography down below 42 and breaks that instead.
-    # Applied unconditionally (not just reactively on failure): the crash
-    # this avoids only happens during actual cert operations, not on
-    # --version, so a --version based health check would miss it, and pip
-    # may have already resolved incompatible versions before this pin
-    # existed. --force makes this safe/idempotent to always re-run.
-    #
-    # cryptography must be pinned explicitly too, not just left to whatever
-    # pyOpenSSL's own (much broader) minimum constraint happens to already
-    # be satisfied by - pip won't upgrade an already-installed dependency
-    # just because a newer version would also be compatible.
-    echo "Ensuring pyOpenSSL/cryptography/josepy are pinned to versions compatible with certbot's acme dependency..."
-    pipx inject certbot 'pyOpenSSL<26.3' 'cryptography>=42,<49' 'josepy<2' --force
 
     # pipx-installed certbot has no systemd renewal timer of its own (unlike
     # the apt package), so set one up here to keep auto-renewal working.
