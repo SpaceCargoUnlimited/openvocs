@@ -131,6 +131,16 @@ if [ "X" != "X$4" ]; then
     EXTERNAL_IP=$4
 fi
 
+# If a path to an existing Let's Encrypt certificate directory (e.g.
+# /etc/letsencrypt/live/<domain>) is given, generate_certificates() links
+# that certificate in instead of generating a new self signed one - this
+# makes re-running ov_config.sh no longer clobber a certificate installed by
+# ov_letsencrypt.sh.
+LE_CERT_DIR=""
+if [ "X" != "X$5" ]; then
+    LE_CERT_DIR=$5
+fi
+
 DIR_HTML="/srv/openvocs/HTML"
 DIR_CONFIG="/etc/openvocs"
 
@@ -509,6 +519,30 @@ generate_config_ov_vocs() {
 
 function generate_certificates() {
 
+   NAME=$IP
+
+   # $NAME.crt/.key may currently be symlinks (e.g. left behind by a
+   # previous run of this function, or by ov_letsencrypt.sh) - opening them
+   # for writing would follow the symlink and overwrite whatever real file
+   # it points to instead of replacing the symlink itself. Remove them first
+   # so both branches below always create fresh, independent links/files.
+   rm -f "$NAME.crt" "$NAME.key"
+
+   if [ "X" != "X$LE_CERT_DIR" ]; then
+
+       if [ ! -f "$LE_CERT_DIR/fullchain.pem" ] || [ ! -f "$LE_CERT_DIR/privkey.pem" ]; then
+           echo "$LE_CERT_DIR does not contain fullchain.pem/privkey.pem, aborting."
+           exit 1
+       fi
+
+       echo "Using existing Let's Encrypt certificate from $LE_CERT_DIR instead of generating a self signed one."
+
+       ln -sf "$LE_CERT_DIR/fullchain.pem" "$DIR_OV_MC_VOCS/$NAME.crt"
+       ln -sf "$LE_CERT_DIR/privkey.pem" "$DIR_OV_MC_VOCS/$NAME.key"
+
+       return
+   fi
+
    # IP.N SAN entries require a literal IP address - if $IP is a hostname
    # (e.g. because it is used for TLS/SNI), it must go in as DNS.N instead.
    SAN_PRIMARY="IP.1 = $IP"
@@ -550,17 +584,9 @@ function generate_certificates() {
    $SAN_PRIMARY
    IP.2 = 127.0.0.1" > $DIR_OV_MC_VOCS"/ssl.cnf"
    
-   NAME=$IP
    CONF=$DIR_OV_MC_VOCS"/ssl.cnf"
    DAYS=365
    RSA=4096
-
-   # $NAME.crt/.key may currently be symlinks (e.g. into
-   # /etc/letsencrypt/live/... left behind by ov_letsencrypt.sh) - opening
-   # them for writing would follow the symlink and overwrite whatever real
-   # file it points to instead of replacing the symlink itself. Remove
-   # them first so openssl always creates fresh, independent files here.
-   rm -f "$NAME.crt" "$NAME.key"
 
    openssl req -x509 -newkey $RSA -nodes -keyout $NAME.key -days $DAYS -out $NAME.crt -extensions req_ext -config $CONF
    
@@ -608,7 +634,11 @@ cd $CWD
 echo ""
 echo "!!! NOTE !!!"
 echo ""
-echo "The generated certificate key file is readable by anyone."
-echo "(1) This is desired for test runs."
-echo "(2) This is NOGO FOR ALL OPERATIONAL SCENARIOS."
+if [ "X" != "X$LE_CERT_DIR" ]; then
+    echo "Linked the existing certificate from $LE_CERT_DIR."
+else
+    echo "The generated certificate key file is readable by anyone."
+    echo "(1) This is desired for test runs."
+    echo "(2) This is NOGO FOR ALL OPERATIONAL SCENARIOS."
+fi
 echo ""
