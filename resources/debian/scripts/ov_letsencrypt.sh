@@ -84,10 +84,22 @@ if [ "$MODE" != "azure" ] && [ "$MODE" != "manual" ]; then
     exit 1
 fi
 
-if ! command -v certbot >/dev/null 2>&1; then
-    echo "certbot not found, installing..."
-    apt-get update && apt-get install -y certbot
+# certbot is installed via pipx (an isolated venv) rather than apt or a bare
+# pip install, so installing the certbot-dns-azure plugin can never conflict
+# with the system's own Python packages (apt's Python is "externally
+# managed" on modern Debian/Ubuntu specifically to prevent this).
+if ! command -v pipx >/dev/null 2>&1; then
+    echo "pipx not found, installing..."
+    apt-get update && apt-get install -y pipx
 fi
+
+if ! pipx list --short 2>/dev/null | grep -q '^certbot '; then
+    echo "certbot not found, installing via pipx..."
+    pipx install certbot
+fi
+
+PIPX_BIN_DIR=$(pipx environment --value PIPX_BIN_DIR 2>/dev/null)
+CERTBOT="${PIPX_BIN_DIR:-$HOME/.local/bin}/certbot"
 
 EMAIL_ARG="--register-unsafely-without-email"
 if [ "X" != "X$EMAIL" ]; then
@@ -132,26 +144,42 @@ dns_azure_zone1 = $DOMAIN:/subscriptions/<subscription id>/resourceGroups/<resou
 
     chmod 600 "$AZURE_INI"
 
-    if ! certbot plugins --text 2>/dev/null | grep -q dns-azure; then
+    if ! "$CERTBOT" plugins --text 2>/dev/null | grep -q dns-azure; then
+        echo "certbot-dns-azure plugin not found, installing into certbot's pipx venv..."
+        pipx inject certbot certbot-dns-azure
+    fi
 
-        if ! command -v pip3 >/dev/null 2>&1; then
-            echo "pip3 not found, installing..."
-            apt-get update && apt-get install -y python3-pip
-        fi
+    # pipx-installed certbot has no systemd renewal timer of its own (unlike
+    # the apt package), so set one up here to keep auto-renewal working.
+    if [ ! -f /etc/systemd/system/ov_certbot_renew.timer ]; then
 
-        echo "certbot-dns-azure plugin not found, installing..."
+        echo "[Unit]
+Description=Renew Let's Encrypt certificates (pipx certbot)
 
-        # installing via pip pulls in a newer certbot/cryptography/PyOpenSSL -
-        # josepy (a certbot dependency) must be upgraded alongside them, or
-        # the apt-installed version left behind will be incompatible with the
-        # newer cryptography/PyOpenSSL API and crash on import.
-        pip3 install --break-system-packages --upgrade certbot-dns-azure josepy 2>/dev/null \
-            || pip3 install --upgrade certbot-dns-azure josepy
+[Service]
+Type=oneshot
+ExecStart=$CERTBOT renew --quiet
+" > /etc/systemd/system/ov_certbot_renew.service
+
+        echo "[Unit]
+Description=Twice daily renewal check for pipx certbot
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00
+RandomizedDelaySec=3600
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+" > /etc/systemd/system/ov_certbot_renew.timer
+
+        systemctl daemon-reload
+        systemctl enable --now ov_certbot_renew.timer
     fi
 
     echo "Requesting Let's Encrypt certificate for $DOMAIN via Azure DNS ..."
 
-    certbot certonly \
+    "$CERTBOT" certonly \
         --authenticator dns-azure \
         --dns-azure-config "$AZURE_INI" \
         --preferred-challenges dns \
@@ -168,7 +196,7 @@ else
     echo "this domain. This script must be run interactively."
     echo ""
 
-    certbot certonly --manual \
+    "$CERTBOT" certonly --manual \
         --preferred-challenges dns \
         --manual-public-ip-logging-ok \
         --agree-tos \
