@@ -149,6 +149,18 @@ dns_azure_zone1 = $DOMAIN:/subscriptions/<subscription id>/resourceGroups/<resou
         pipx inject certbot certbot-dns-azure
     fi
 
+    # certbot-dns-azure only declares azure-mgmt-dns>=8.2.0 (no upper bound)
+    # against what its own setup.py calls "the old style SDK, will change
+    # dramatically when they refactor" - azure-mgmt-dns 9.x is exactly that
+    # refactor (DnsManagementClient's constructor signature changed), so pin
+    # it back to the 8.x line the plugin was actually built against. This
+    # must run every time (not just on first install), since pip may have
+    # already resolved the newer 9.x before this pin ever existed.
+    if ! pipx runpip certbot show azure-mgmt-dns 2>/dev/null | grep -q '^Version: 8\.'; then
+        echo "Pinning azure-mgmt-dns to a version compatible with certbot-dns-azure..."
+        pipx inject certbot 'azure-mgmt-dns<9' --force
+    fi
+
     # acme (a core certbot dependency) still relies on josepy's legacy
     # ComparableX509, which in turn needs OpenSSL.crypto.X509Req via
     # pyOpenSSL - a version dropped from recent pyOpenSSL releases, crashing
