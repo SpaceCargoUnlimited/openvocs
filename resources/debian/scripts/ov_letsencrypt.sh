@@ -177,8 +177,13 @@ dns_azure_zone1 = $DOMAIN:/subscriptions/<subscription id>/resourceGroups/<resou
     # --version, so a --version based health check would miss it, and pip
     # may have already resolved incompatible versions before this pin
     # existed. --force makes this safe/idempotent to always re-run.
-    echo "Ensuring pyOpenSSL/josepy are pinned to versions compatible with certbot's acme dependency..."
-    pipx inject certbot 'pyOpenSSL<26.3' 'josepy<2' --force
+    #
+    # cryptography must be pinned explicitly too, not just left to whatever
+    # pyOpenSSL's own (much broader) minimum constraint happens to already
+    # be satisfied by - pip won't upgrade an already-installed dependency
+    # just because a newer version would also be compatible.
+    echo "Ensuring pyOpenSSL/cryptography/josepy are pinned to versions compatible with certbot's acme dependency..."
+    pipx inject certbot 'pyOpenSSL<26.3' 'cryptography>=42,<49' 'josepy<2' --force
 
     # pipx-installed certbot has no systemd renewal timer of its own (unlike
     # the apt package), so set one up here to keep auto-renewal working.
