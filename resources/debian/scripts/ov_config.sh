@@ -554,7 +554,14 @@ function generate_certificates() {
    CONF=$DIR_OV_MC_VOCS"/ssl.cnf"
    DAYS=365
    RSA=4096
-   
+
+   # $NAME.crt/.key may currently be symlinks (e.g. into
+   # /etc/letsencrypt/live/... left behind by ov_letsencrypt.sh) - opening
+   # them for writing would follow the symlink and overwrite whatever real
+   # file it points to instead of replacing the symlink itself. Remove
+   # them first so openssl always creates fresh, independent files here.
+   rm -f "$NAME.crt" "$NAME.key"
+
    openssl req -x509 -newkey $RSA -nodes -keyout $NAME.key -days $DAYS -out $NAME.crt -extensions req_ext -config $CONF
    
    #       ------------------------------------------------------------------------
