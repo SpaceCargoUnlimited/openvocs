@@ -149,15 +149,16 @@ dns_azure_zone1 = $DOMAIN:/subscriptions/<subscription id>/resourceGroups/<resou
         pipx inject certbot certbot-dns-azure
     fi
 
-    # The installed pyOpenSSL no longer exposes OpenSSL.crypto.X509Req, which
-    # both josepy and acme (certbot's own core dependencies) still reference,
-    # crashing certbot on startup with "module 'OpenSSL.crypto' has no
-    # attribute 'X509Req'". josepy>=2 dropped its pyOpenSSL dependency
-    # entirely; pinning pyOpenSSL back to a version that still has X509Req
-    # fixes it for acme and anything else still relying on the legacy API.
+    # acme (a core certbot dependency) still relies on josepy's legacy
+    # ComparableX509, which in turn needs OpenSSL.crypto.X509Req via
+    # pyOpenSSL - a version dropped from recent pyOpenSSL releases, crashing
+    # certbot on startup with "module 'OpenSSL.crypto' has no attribute
+    # 'X509Req'". Pin pyOpenSSL back to a version that still has it, and let
+    # josepy resolve naturally to a version that still has ComparableX509
+    # (josepy>=2 removed it, which breaks acme the other way).
     if ! "$CERTBOT" --version >/dev/null 2>&1; then
-        echo "certbot is broken (likely a pyOpenSSL/cryptography mismatch), pinning compatible versions..."
-        pipx inject certbot 'josepy>=2' 'pyOpenSSL<24' --force
+        echo "certbot is broken (likely a pyOpenSSL/cryptography mismatch), pinning a compatible pyOpenSSL..."
+        pipx inject certbot 'pyOpenSSL<24' 'josepy<2' --force
     fi
 
     # pipx-installed certbot has no systemd renewal timer of its own (unlike
