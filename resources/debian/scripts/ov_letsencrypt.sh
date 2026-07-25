@@ -156,35 +156,42 @@ dns_azure_zone1 = $DOMAIN:/subscriptions/<subscription id>/resourceGroups/<resou
     #   calls "the old style SDK, will change dramatically when they
     #   refactor" - azure-mgmt-dns 9.x is exactly that refactor
     #   (DnsManagementClient's constructor signature changed).
-    # - pyOpenSSL>=26.2,<26.3: OpenSSL.crypto.X509Req (needed by josepy<2's
-    #   ComparableX509, in turn needed by certbot's own acme dependency) was
-    #   removed entirely in pyOpenSSL 26.3.0 (confirmed against pyOpenSSL's
-    #   own changelog) - 26.2.0 still has it. Giving pyOpenSSL only an upper
-    #   bound is not enough: pip is then free to satisfy it with a much
-    #   older release (e.g. 23.2.0/24.0.0), which themselves cap
-    #   cryptography well below 42 and silently drag it down too, even with
-    #   an explicit cryptography>=42 pin requested alongside it. pyOpenSSL
-    #   26.2.0 specifically requires cryptography>=46.0.0,<49 (confirmed
-    #   against its PyPI metadata), which is what actually forces a
-    #   compatible cryptography rather than just hoping for one.
-    # - cryptography>=46,<49: not_valid_after_utc (used elsewhere in
+    # certbot-dns-azure's own certbot<4.0 ceiling (see above) forces certbot
+    # itself down to the 3.x line, which pulls in a matching acme 3.x - and
+    # acme's crypto_util.py at that version (confirmed directly against its
+    # source at the certbot v3.3.0 tag) references exactly three legacy
+    # attributes: OpenSSL.crypto.X509Req, OpenSSL.crypto.X509Extension, and
+    # josepy's ComparableX509.
+    #
+    # - pyOpenSSL>=26.1,<26.2: X509Extension was removed in pyOpenSSL 26.2.0
+    #   (one version before X509Req's own removal in 26.3.0) - confirmed
+    #   against pyOpenSSL's changelog, so 26.1.x is the actual last line
+    #   that still has both. Giving pyOpenSSL only an upper bound is not
+    #   enough: pip is then free to satisfy it with a much older release
+    #   (e.g. 23.2.0/24.0.0), which themselves cap cryptography well below
+    #   42 and silently drag it down too, even with an explicit
+    #   cryptography>=42 pin requested alongside it. pyOpenSSL 26.1.0
+    #   specifically requires cryptography>=46.0.0,<48 (confirmed against
+    #   its PyPI metadata), which is what actually forces a compatible
+    #   cryptography rather than just hoping for one.
+    # - cryptography>=46,<48: not_valid_after_utc (used elsewhere in
     #   certbot, e.g. when checking an existing cert's OCSP status) was
     #   added in cryptography 42.0.0 (confirmed against cryptography's own
-    #   changelog) - >=46 matches pyOpenSSL 26.2.0's own requirement exactly
-    #   (see above), so there is no ambiguity for pip's resolver to settle
-    #   incorrectly.
+    #   changelog) - >=46,<48 matches pyOpenSSL 26.1.0's own requirement
+    #   exactly (see above), so there is no ambiguity for pip's resolver to
+    #   settle incorrectly.
     # - josepy<2: josepy>=2 dropped ComparableX509 entirely, which breaks
-    #   certbot's acme dependency the other way. josepy itself only
-    #   declares cryptography>=1.5 (confirmed against its PyPI metadata), so
-    #   it does not conflict with the cryptography pin above.
+    #   acme's crypto_util.py the other way. josepy itself only declares
+    #   cryptography>=1.5 (confirmed against its PyPI metadata), so it does
+    #   not conflict with the cryptography pin above.
     if ! "$CERTBOT" plugins --text 2>/dev/null | grep -q dns-azure; then
         echo "certbot-dns-azure plugin not found, installing into certbot's pipx venv..."
         pipx inject certbot certbot-dns-azure \
-            'azure-mgmt-dns<9' 'pyOpenSSL>=26.2,<26.3' 'cryptography>=46,<49' 'josepy<2'
+            'azure-mgmt-dns<9' 'pyOpenSSL>=26.1,<26.2' 'cryptography>=46,<48' 'josepy<2'
     else
         echo "Ensuring certbot's dependency versions are pinned correctly..."
         pipx inject certbot \
-            'azure-mgmt-dns<9' 'pyOpenSSL>=26.2,<26.3' 'cryptography>=46,<49' 'josepy<2' --force
+            'azure-mgmt-dns<9' 'pyOpenSSL>=26.1,<26.2' 'cryptography>=46,<48' 'josepy<2' --force
     fi
 
     # pipx-installed certbot has no systemd renewal timer of its own (unlike
