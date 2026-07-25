@@ -422,9 +422,9 @@ generate_config_ov_vocs() {
          {
            \"vad\" :
            {
-             \"zero_crossings_rate_hertz\" : 10000,
-             \"powerlevel_density_dbfs\" : -50,
-             \"enabled\" : true
+             \"zero_crossings_rate_hertz\" : 50000,
+             \"powerlevel_density_dbfs\" : -500,
+             \"enabled\" : false
            },
            \"sample_rate_hz\" : 48000,
            \"noise\" : -70,
