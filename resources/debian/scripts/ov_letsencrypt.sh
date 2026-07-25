@@ -133,6 +133,12 @@ dns_azure_zone1 = $DOMAIN:/subscriptions/<subscription id>/resourceGroups/<resou
     chmod 600 "$AZURE_INI"
 
     if ! certbot plugins --text 2>/dev/null | grep -q dns-azure; then
+
+        if ! command -v pip3 >/dev/null 2>&1; then
+            echo "pip3 not found, installing..."
+            apt-get update && apt-get install -y python3-pip
+        fi
+
         echo "certbot-dns-azure plugin not found, installing..."
         pip3 install --break-system-packages certbot-dns-azure 2>/dev/null \
             || pip3 install certbot-dns-azure
