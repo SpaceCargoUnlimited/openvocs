@@ -140,8 +140,13 @@ dns_azure_zone1 = $DOMAIN:/subscriptions/<subscription id>/resourceGroups/<resou
         fi
 
         echo "certbot-dns-azure plugin not found, installing..."
-        pip3 install --break-system-packages certbot-dns-azure 2>/dev/null \
-            || pip3 install certbot-dns-azure
+
+        # installing via pip pulls in a newer certbot/cryptography/PyOpenSSL -
+        # josepy (a certbot dependency) must be upgraded alongside them, or
+        # the apt-installed version left behind will be incompatible with the
+        # newer cryptography/PyOpenSSL API and crash on import.
+        pip3 install --break-system-packages --upgrade certbot-dns-azure josepy 2>/dev/null \
+            || pip3 install --upgrade certbot-dns-azure josepy
     fi
 
     echo "Requesting Let's Encrypt certificate for $DOMAIN via Azure DNS ..."
