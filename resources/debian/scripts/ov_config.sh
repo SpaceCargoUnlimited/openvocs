@@ -105,7 +105,7 @@ fi
 
 
 if [[ -z "$1" ]]; then
-    echo "You need to provide some IP/HOST to generate the config."
+    echo "You need to provide some IP to generate the config."
     exit
 fi
 
@@ -123,13 +123,7 @@ if [ "X" != "X$3" ]; then
     BIND_HOST=$3
 fi
 
-# ICE candidate addresses must be a literal IP, never a hostname - if $IP is
-# a domain name (e.g. because it is also used for TLS/SNI), pass the actual
-# public IP here explicitly.
 EXTERNAL_IP=$IP
-if [ "X" != "X$4" ]; then
-    EXTERNAL_IP=$4
-fi
 
 # If a path to an existing Let's Encrypt certificate directory (e.g.
 # /etc/letsencrypt/live/<domain>) is given, generate_certificates() links
@@ -137,8 +131,8 @@ fi
 # makes re-running ov_config.sh no longer clobber a previously installed
 # certificate.
 LE_CERT_DIR=""
-if [ "X" != "X$5" ]; then
-    LE_CERT_DIR=$5
+if [ "X" != "X$4" ]; then
+    LE_CERT_DIR=$4
 fi
 
 DIR_HTML="/srv/openvocs/HTML"
@@ -543,13 +537,6 @@ function generate_certificates() {
        return
    fi
 
-   # IP.N SAN entries require a literal IP address - if $IP is a hostname
-   # (e.g. because it is used for TLS/SNI), it must go in as DNS.N instead.
-   SAN_PRIMARY="IP.1 = $IP"
-   if ! [[ $IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-       SAN_PRIMARY="DNS.1 = $IP"
-   fi
-
    echo "#
    # Standart OpenSSL configuration file to generate the ov.test
    # certificates
@@ -581,7 +568,7 @@ function generate_certificates() {
    
    [ alt_names ]
 
-   $SAN_PRIMARY
+   IP.1 = $IP
    IP.2 = 127.0.0.1" > $DIR_OV_MC_VOCS"/ssl.cnf"
    
    CONF=$DIR_OV_MC_VOCS"/ssl.cnf"
