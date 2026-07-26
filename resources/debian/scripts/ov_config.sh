@@ -134,8 +134,8 @@ fi
 # If a path to an existing Let's Encrypt certificate directory (e.g.
 # /etc/letsencrypt/live/<domain>) is given, generate_certificates() links
 # that certificate in instead of generating a new self signed one - this
-# makes re-running ov_config.sh no longer clobber a certificate installed by
-# ov_letsencrypt.sh.
+# makes re-running ov_config.sh no longer clobber a previously installed
+# certificate.
 LE_CERT_DIR=""
 if [ "X" != "X$5" ]; then
     LE_CERT_DIR=$5
@@ -522,10 +522,10 @@ function generate_certificates() {
    NAME=$IP
 
    # $NAME.crt/.key may currently be symlinks (e.g. left behind by a
-   # previous run of this function, or by ov_letsencrypt.sh) - opening them
-   # for writing would follow the symlink and overwrite whatever real file
-   # it points to instead of replacing the symlink itself. Remove them first
-   # so both branches below always create fresh, independent links/files.
+   # previous run of this function) - opening them for writing would follow
+   # the symlink and overwrite whatever real file it points to instead of
+   # replacing the symlink itself. Remove them first so both branches below
+   # always create fresh, independent links/files.
    rm -f "$NAME.crt" "$NAME.key"
 
    if [ "X" != "X$LE_CERT_DIR" ]; then

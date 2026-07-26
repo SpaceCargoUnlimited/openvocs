@@ -60,7 +60,7 @@ $(OV_LOCAL_DIST_DIR)/usr/lib: $(LIB_FILES_ABSPATH)
 	$(OV_QUIET)$(OV_MKDIR) $@
 	for f in $?; do $(OV_COPY)  $$f $@; done
 
-$(OV_LOCAL_DIST_DIR)/etc/openvocs: $(OPENVOCS_ROOT)/resources/certificate $(OPENVOCS_ROOT)/resources/debian/scripts/ov_config.sh $(OPENVOCS_ROOT)/resources/debian/scripts/ov_letsencrypt.sh
+$(OV_LOCAL_DIST_DIR)/etc/openvocs: $(OPENVOCS_ROOT)/resources/certificate $(OPENVOCS_ROOT)/resources/debian/scripts/ov_config.sh
 	$(OV_QUIET)echo "Creating $@"
 	$(OV_QUIET)$(OV_MKDIR) $@/ov_mc_ice_proxy
 	$(OV_QUIET)$(OV_MKDIR) $@/ov_mc_mixer
