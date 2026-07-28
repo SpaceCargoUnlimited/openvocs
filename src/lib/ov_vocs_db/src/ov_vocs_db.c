@@ -727,6 +727,8 @@ static bool delete_password_in_project(const void *key, void *val, void *data) {
 
 /*----------------------------------------------------------------------------*/
 
+static bool add_new_user(const void *key, void *val, void *data);
+
 static ov_json_value *lock_db_get(ov_vocs_db *self, const char *id,
                                   ov_dict *index) {
 
@@ -743,6 +745,11 @@ static ov_json_value *lock_db_get(ov_vocs_db *self, const char *id,
         goto done;
 
     ov_json_value_copy((void **)&cpy, src);
+
+    // Users are unique across the whole db
+    ov_json_value *own_users = (ov_json_value *)ov_json_get(cpy, "/" OV_KEY_USERS);
+    if (own_users)
+        ov_dict_for_each(self->index.users, own_users, add_new_user);
 
 done:
     if (!ov_thread_lock_unlock(&self->lock))
