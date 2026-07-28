@@ -731,24 +731,6 @@ static bool add_new_user(const void *key, void *val, void *data);
 
 /*----------------------------------------------------------------------------*/
 
-static bool merge_global_users_in_project(const void *key, void *val,
-                                          void *data) {
-
-    if (!key)
-        return true;
-
-    ov_dict *global_users = (ov_dict *)data;
-
-    ov_json_value *users = (ov_json_value *)ov_json_get(val, "/" OV_KEY_USERS);
-
-    if (users)
-        return ov_dict_for_each(global_users, users, add_new_user);
-
-    return true;
-}
-
-/*----------------------------------------------------------------------------*/
-
 static ov_json_value *lock_db_get(ov_vocs_db *self, const char *id,
                                   ov_dict *index) {
 
@@ -766,16 +748,15 @@ static ov_json_value *lock_db_get(ov_vocs_db *self, const char *id,
 
     ov_json_value_copy((void **)&cpy, src);
 
-    // Users are unique across the whole db
+    // Users are unique across the whole db. Merge this into the top-level
+    // users of whatever got fetched (a domain or a project) only - not into
+    // each nested project as well, or the same global user would show up as
+    // a separate entry per project.
 
     ov_json_value *own_users =
         (ov_json_value *)ov_json_get(cpy, "/" OV_KEY_USERS);
     if (own_users)
         ov_dict_for_each(self->index.users, own_users, add_new_user);
-
-    ov_json_object_for_each(
-        (ov_json_value *)ov_json_get(cpy, "/" OV_KEY_PROJECTS),
-        self->index.users, merge_global_users_in_project);
 
 done:
     if (!ov_thread_lock_unlock(&self->lock))
