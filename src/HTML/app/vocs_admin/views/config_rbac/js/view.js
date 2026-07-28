@@ -37,8 +37,10 @@ const DOM = {};
 var VIEW_ID;
 
 var domain_id;
+var ldap_auth;
 
-export function init(view_id, ldap_auth) {
+export function init(view_id, ldap_auth_param) {
+    ldap_auth = ldap_auth_param;
     DOM.graph = document.querySelector("ov-rbac-graph");
     DOM.menu_button = document.getElementById("open_graph_menu");
     DOM.menu = document.getElementById("graph_menu");
@@ -73,6 +75,9 @@ export function init(view_id, ldap_auth) {
 
 export function render(domain_data, project_data) {
     DOM.graph.clear();
+    // a project never owns user data - new users (with a password) can only
+    // be created from the domain view
+    DOM.graph.no_new_users = ldap_auth || !!project_data;
     if (project_data) {
         DOM.graph.add_node_subset(project_data, project_data.id);
     } else {

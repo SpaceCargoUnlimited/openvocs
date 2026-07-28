@@ -280,20 +280,8 @@ export default class ov_RBAC_Graph extends HTMLElement {
                     let second = b.name ? b.name : b.id;
                     return first.localeCompare(second);
                 });
-                for (let node of sorted_nodes) {
-                    // a user can appear in more than one subset passed to add_node_subset
-                    // (e.g. project users are also part of the domain's full user list) -
-                    // reuse the already rendered node instead of adding a duplicate
-                    let existing = Graph.nodes.users.get(node.id);
-                    if (existing) {
-                        if (node.ldap || node.frozen)
-                            existing.frozen = true;
-                        if (node.global)
-                            existing.global = true;
-                        continue;
-                    }
+                for (let node of sorted_nodes)
                     this.#render_node(node, "user", id, node.id === "admin");
-                }
             }
 
             if (data.roles) {

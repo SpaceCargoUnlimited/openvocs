@@ -727,8 +727,6 @@ static bool delete_password_in_project(const void *key, void *val, void *data) {
 
 /*----------------------------------------------------------------------------*/
 
-static bool add_new_user(const void *key, void *val, void *data);
-
 static ov_json_value *lock_db_get(ov_vocs_db *self, const char *id,
                                   ov_dict *index) {
 
@@ -745,11 +743,6 @@ static ov_json_value *lock_db_get(ov_vocs_db *self, const char *id,
         goto done;
 
     ov_json_value_copy((void **)&cpy, src);
-
-    // Users are unique across the whole db
-    ov_json_value *own_users = (ov_json_value *)ov_json_get(cpy, "/" OV_KEY_USERS);
-    if (own_users)
-        ov_dict_for_each(self->index.users, own_users, add_new_user);
 
 done:
     if (!ov_thread_lock_unlock(&self->lock))
@@ -2024,7 +2017,9 @@ static bool update_project(ov_vocs_db *self, ov_json_value *src, const char *id,
 
     if (0 == strcmp(key, OV_KEY_USERS)) {
 
-        result = update_users(self, src, val);
+        // Projects never own user data - users live at the domain level only,
+        // roles reference them by id instead.
+        result = 0 == ov_json_object_count(val);
 
     } else if (0 == strcmp(key, OV_KEY_ROLES)) {
 
@@ -2558,7 +2553,7 @@ static bool verify_project(ov_vocs_db *self, const char *id,
     ov_json_value *project = ov_dict_get(self->index.projects, id);
 
     /*
-        1. users MUST be already contained in project or not set.
+        1. projects never own users - users live at the domain level only.
         2. roles MUST be already contained in project or not set.
         3. loops MUST be already contained in project or not set.
     */
@@ -2569,10 +2564,17 @@ static bool verify_project(ov_vocs_db *self, const char *id,
         (struct container_verify){.db = self, .err = NULL, .data = NULL};
 
     data = ov_json_get(value, "/" OV_KEY_USERS);
-    container.data = ov_json_get(project, "/" OV_KEY_USERS);
-    if (data && !ov_json_object_for_each((ov_json_value *)data, &container,
-                                         verify_user_id))
+    if (data && 0 < ov_json_object_count(data)) {
+
+        if (!container.err)
+            container.err = ov_json_object();
+
+        ov_json_value *err = ov_json_string("projects do not own users.");
+        if (!ov_json_object_set(container.err, OV_KEY_USERS, err))
+            err = ov_json_value_free(err);
+
         goto error;
+    }
 
     data = ov_json_get(value, "/" OV_KEY_ROLES);
     container.data = ov_json_get(project, "/" OV_KEY_ROLES);

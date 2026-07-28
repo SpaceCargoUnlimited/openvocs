@@ -48,8 +48,7 @@
                     {
                         "id":"project1",
                         "loops": { ... },
-                        "roles" : { ... },
-                        "users" : { ... }
+                        "roles" : { ... }
                     }
                 }
                 "loops": { ... },
@@ -57,6 +56,9 @@
                 "users" : { ... }
             }
         }
+
+        User entries (id and password) exist only at the domain level - a
+        project never owns user data, roles reference users by id instead.
 
         Within the structures any content may be set and persisted. The db
         verifies the overall structure of domains containing projects containing

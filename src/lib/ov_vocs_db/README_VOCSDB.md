@@ -3,8 +3,10 @@
 ov_vocs_db is some inmemory db for a structured scheme of JSON items. The sctructure is realated to the management of vocs specific items like domains, projects, roles, loops and user entries. It implementes some ROLE BASED ACCESS CONTROL (RBAC) environment integrated with some domain and project structure management.
 
 A domain may contain a set of user, role and loop entries, as well as a set of
-projects, which each may contain some own set of user, role and loop entries.
-An example scheme structure is defined as follows:
+projects, which each may contain some own set of role and loop entries.
+User entries (id and password) exist only at the domain level - a project
+never owns user data, roles reference users by id instead. An example scheme
+structure is defined as follows:
 
 ```json
 {
@@ -19,7 +21,6 @@ An example scheme structure is defined as follows:
 			"project_id" :
 			{
 				"id" : "project_id",
-				"users" : {},
 				"roles" : {},
 				"loops" : {}
 			}

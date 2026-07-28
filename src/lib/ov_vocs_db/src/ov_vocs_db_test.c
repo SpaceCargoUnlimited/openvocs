@@ -1858,22 +1858,26 @@ int test_ov_vocs_db_verify_entity_item() {
 
     testrun(!err);
 
-    // project with non existing entries
+    // projects never own users - any non-empty users entry MUST fail
 
     par = ov_json_object();
     ov_json_object_set(out, OV_KEY_USERS, par);
     val = create_id_object("unknown_user");
     ov_json_object_set(par, "unknown_user", val);
 
-    testrun(ov_vocs_db_verify_entity_item(db, OV_VOCS_DB_PROJECT, "unknown",
-                                          out, &err));
+    testrun(!ov_vocs_db_verify_entity_item(db, OV_VOCS_DB_PROJECT, "unknown",
+                                           out, &err));
 
-    testrun(!err);
+    testrun(err);
+    err = ov_json_value_free(err);
 
-    testrun(ov_vocs_db_verify_entity_item(db, OV_VOCS_DB_PROJECT, "project1",
-                                          out, &err));
+    testrun(!ov_vocs_db_verify_entity_item(db, OV_VOCS_DB_PROJECT, "project1",
+                                           out, &err));
 
-    testrun(!err);
+    testrun(err);
+    err = ov_json_value_free(err);
+
+    ov_json_object_del(out, OV_KEY_USERS);
 
     par = ov_json_object();
     ov_json_object_set(out, OV_KEY_ROLES, par);
@@ -1952,10 +1956,13 @@ int test_ov_vocs_db_verify_entity_item() {
     testrun(err);
     err = ov_json_value_free(err);
 
-    // check with user owned by project 1
+    // check with user owned by project 1 - projects never own users, so this
+    // MUST fail regardless of the project id, but a domain is still allowed
+    // to be checked for a user conflict
 
     ov_json_object_del(par, "role11");
-    par = ov_json_object_get(out, OV_KEY_USERS);
+    par = ov_json_object();
+    ov_json_object_set(out, OV_KEY_USERS, par);
 
     val = create_id_object("user11");
     ov_json_object_set(par, "user11", val);
@@ -1966,10 +1973,11 @@ int test_ov_vocs_db_verify_entity_item() {
     testrun(err);
     err = ov_json_value_free(err);
 
-    testrun(ov_vocs_db_verify_entity_item(db, OV_VOCS_DB_PROJECT, "project1",
-                                          out, &err));
+    testrun(!ov_vocs_db_verify_entity_item(db, OV_VOCS_DB_PROJECT, "project1",
+                                           out, &err));
 
-    testrun(!err);
+    testrun(err);
+    err = ov_json_value_free(err);
 
     testrun(!ov_vocs_db_verify_entity_item(db, OV_VOCS_DB_DOMAIN, "unknown",
                                            out, &err));
@@ -2325,22 +2333,26 @@ int test_ov_vocs_db_update_entity_item() {
     testrun(err);
     err = ov_json_value_free(err);
 
-    // update project owning the user, will delete user32 and user33
+    // projects never own user data - any non-empty "users" update MUST fail,
+    // even for a project that already owns the referenced user
 
-    testrun(ov_vocs_db_update_entity_item(db, OV_VOCS_DB_PROJECT, "project3",
-                                          out, &err));
+    testrun(!ov_vocs_db_update_entity_item(db, OV_VOCS_DB_PROJECT, "project3",
+                                           out, &err));
 
-    testrun(!err);
+    testrun(err);
+    err = ov_json_value_free(err);
 
     testrun(3 == ov_dict_count(db->index.domains));
     testrun(3 == ov_dict_count(db->index.projects));
-    testrun(10 == ov_dict_count(db->index.users));
+    testrun(12 == ov_dict_count(db->index.users));
     testrun(9 == ov_dict_count(db->index.roles));
     testrun(9 == ov_dict_count(db->index.loops));
 
     val = ov_json_get(db->data.domains, "/domain3/projects/project3/users");
-    testrun(1 == ov_json_object_count(val));
+    testrun(3 == ov_json_object_count(val));
     testrun(ov_json_get(val, "/user31"));
+    testrun(ov_json_get(val, "/user32"));
+    testrun(ov_json_get(val, "/user33"));
 
     out = ov_json_value_free(out);
     out = ov_json_object();
@@ -2376,7 +2388,7 @@ int test_ov_vocs_db_update_entity_item() {
 
     testrun(3 == ov_dict_count(db->index.domains));
     testrun(3 == ov_dict_count(db->index.projects));
-    testrun(10 == ov_dict_count(db->index.users));
+    testrun(12 == ov_dict_count(db->index.users));
     testrun(7 == ov_dict_count(db->index.roles));
     testrun(9 == ov_dict_count(db->index.loops));
 
@@ -2418,7 +2430,7 @@ int test_ov_vocs_db_update_entity_item() {
 
     testrun(3 == ov_dict_count(db->index.domains));
     testrun(3 == ov_dict_count(db->index.projects));
-    testrun(10 == ov_dict_count(db->index.users));
+    testrun(12 == ov_dict_count(db->index.users));
     testrun(7 == ov_dict_count(db->index.roles));
     testrun(7 == ov_dict_count(db->index.loops));
 
