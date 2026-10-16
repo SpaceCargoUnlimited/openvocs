@@ -310,6 +310,11 @@ static bool process_head(Webserver *self, int socket,
     if (!ov_webserver_io_clean_path(self->io, socket, msg, path, PATH_MAX))
         goto error;
 
+    size_t path_len = strlen(path);
+
+    if (path[path_len - 1] == '/')
+        strcat(path, "index.html");
+
     const ov_http_header *range =
         ov_http_header_get(msg->header, msg->config.header.capacity, "Range");
 

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
+    <title>Server Settings</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #f4f4f4;
+            --fg: #1e1e1e;
+            --muted: #666;
+            --field: #fff;
+            --border: #ccc;
+            --accent: #0a6ebd;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1e1e1e;
+                --fg: #eee;
+                --muted: #999;
+                --field: #2a2a2a;
+                --border: #444;
+                --accent: #4da3ff;
+            }
+        }
+
+        body {
+            margin: 0;
+            padding: 1.5rem;
+            font: 14px system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            margin: 0 0 1rem;
+        }
+
+        label {
+            display: block;
+            margin: 0.8rem 0 0.3rem;
+        }
+
+        input[type=text],
+        select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.45rem;
+            font: inherit;
+            color: var(--fg);
+            background: var(--field);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 0.25rem;
+        }
+
+        .admin {
+            margin-top: 1.2rem;
+            padding-top: 0.9rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .admin a {
+            color: var(--accent);
+        }
+
+        .error {
+            color: #d33;
+            min-height: 1.2em;
+            margin-top: 0.8rem;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        button {
+            font: inherit;
+            padding: 0.4rem 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--field);
+            color: var(--fg);
+        }
+
+        button[type=submit] {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        footer {
+            margin-top: 1rem;
+            color: var(--muted);
+            font-size: 11px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>openvocs server</h1>
+    <form id="form">
+        <label for="server">Server address</label>
+        <input type="text" id="server" placeholder="openvocs.example.org" required autofocus>
+        <div class="hint">Host name and optional port. The interface is loaded from
+            https://&lt;server&gt;/app/vocs/.</div>
+
+        <div class="admin" id="admin" hidden>
+            <a href="#" id="open_admin">Open admin page</a>
+            <div class="hint">Opens <span id="admin_url"></span> in a separate window.</div>
+        </div>
+
+        <div class="error" id="error"></div>
+        <div class="buttons">
+            <button type="button" id="cancel">Cancel</button>
+            <button type="submit">Save &amp; Connect</button>
+        </div>
+    </form>
+    <footer>© Space Cargo Unlimited S.A.S. · INTERNAL</footer>
+    <script src="settings.js"></script>
+</body>
+
+</html>
