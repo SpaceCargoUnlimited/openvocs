@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
-    <title>Server Settings</title>
+    <title>OpenVOCS Client Settings</title>
     <style>
         :root {
             color-scheme: light dark;
@@ -63,6 +63,23 @@
             margin-top: 0.25rem;
         }
 
+        .section {
+            margin-top: 1.2rem;
+            padding-top: 0.9rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .section h2 {
+            font-size: 1rem;
+            margin: 0 0 0.3rem;
+        }
+
+        .row {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
         .admin {
             margin-top: 1.2rem;
             padding-top: 0.9rem;
@@ -95,6 +112,10 @@
             color: var(--fg);
         }
 
+        button:disabled {
+            opacity: 0.5;
+        }
+
         button[type=submit] {
             background: var(--accent);
             border-color: var(--accent);
@@ -111,7 +132,7 @@
 </head>
 
 <body>
-    <h1>openvocs server</h1>
+    <h1>OpenVOCS Client Settings</h1>
     <form id="form">
         <label for="server">Server address</label>
         <input type="text" id="server" placeholder="openvocs.example.org" required autofocus>
@@ -121,6 +142,15 @@
         <div class="admin" id="admin" hidden>
             <a href="#" id="open_admin">Open admin page</a>
             <div class="hint">Opens <span id="admin_url"></span> in a separate window.</div>
+        </div>
+
+        <div class="section">
+            <h2>Window position</h2>
+            <div class="hint" id="window_position" aria-live="polite"></div>
+            <div class="row">
+                <button type="button" id="save_window">Save current position</button>
+                <button type="button" id="reset_window">Reset</button>
+            </div>
         </div>
 
         <div class="error" id="error"></div>

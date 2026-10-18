@@ -13,7 +13,7 @@
 
     ---------------------------------------------------------------------------
 
-    Electron shell for the openvocs web front-end. The interface is always
+    Electron shell for the OpenVOCS web front-end. The interface is always
     loaded from the configured server (https://<server>/app/vocs/), nothing
     of src/HTML is packaged with the app.
 
@@ -24,7 +24,7 @@
 */
 
 const {
-    app, BrowserWindow, Menu, ipcMain, session, shell, systemPreferences
+    app, BrowserWindow, Menu, ipcMain, screen, session, shell, systemPreferences
 } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -37,11 +37,15 @@ const LOADER_URL = pathToFileURL(LOADER_FILE).href;
 const MAX_RETRY_DELAY = 15; // seconds
 const PROBE_TIMEOUT = 20;   // seconds
 
+// keep the user-data folder of earlier versions ("openvocs"): it would differ
+// from the product name "OpenVOCS" on case-sensitive file systems (Linux)
+app.setPath("userData", path.join(app.getPath("appData"), "openvocs"));
+
 const SETTINGS_FILE = path.join(app.getPath("userData"), "settings.json");
 
 const DEFAULT_SETTINGS = {
     server: "",                     // host[:port], e.g. "openvocs.example.org"
-    bounds: { width: 1280, height: 800 }
+    window: null                    // saved position: { bounds, maximized, fullscreen }
 };
 
 const GRANTED_PERMISSIONS = new Set([
@@ -128,7 +132,7 @@ function setup_session() {
     });
 }
 
-// windows --------------------------------------------------------------------
+// navigation -----------------------------------------------------------------
 
 // pages of the window's server stay in the app, everything else opens in the
 // system browser
@@ -148,12 +152,77 @@ function restrict_navigation(contents, server_of = () => settings.server) {
     });
 }
 
+// the server pages title themselves "openvocs voice" / "openvocs admin"
+function keep_title(window) {
+    window.on("page-title-updated", event => event.preventDefault());
+}
+
+// window position -----------------------------------------------------------
+
+const DEFAULT_SIZE = { width: 1280, height: 800 };
+
+// a saved position is only used while enough of it is on a connected display
+function is_on_screen(bounds) {
+    return screen.getAllDisplays().some(({ workArea: area }) => {
+        let width = Math.min(bounds.x + bounds.width, area.x + area.width) - Math.max(bounds.x, area.x);
+        let height = Math.min(bounds.y + bounds.height, area.y + area.height) - Math.max(bounds.y, area.y);
+        return width >= 100 && height >= 50;
+    });
+}
+
+function initial_bounds() {
+    let saved = settings.window?.bounds;
+    return saved && is_on_screen(saved) ? saved : DEFAULT_SIZE; // default: centered
+}
+
+function save_window_position() {
+    if (!main_window)
+        return;
+    settings.window = {
+        bounds: main_window.getNormalBounds(), // size before maximizing
+        maximized: main_window.isMaximized(),
+        fullscreen: main_window.isFullScreen()
+    };
+    save_settings();
+}
+
+function reset_window_position() {
+    settings.window = null;
+    save_settings();
+    if (!main_window)
+        return;
+    main_window.setFullScreen(false);
+    main_window.unmaximize();
+    main_window.setSize(DEFAULT_SIZE.width, DEFAULT_SIZE.height);
+    main_window.center();
+}
+
+function describe_window_position() {
+    let saved = settings.window;
+    if (!saved)
+        return "";
+    let { x, y, width, height } = saved.bounds;
+    let text = width + " × " + height + " at " + x + ", " + y;
+    if (!is_on_screen(saved.bounds))
+        return text + " (display not connected: opens centered)";
+    let display = screen.getDisplayMatching(saved.bounds).label;
+    if (display)
+        text += " on " + display;
+    if (saved.fullscreen)
+        text += ", full screen";
+    else if (saved.maximized)
+        text += ", maximized";
+    return text;
+}
+
+// windows --------------------------------------------------------------------
+
 function create_main_window() {
     main_window = new BrowserWindow({
-        ...settings.bounds,
+        ...initial_bounds(),
         minWidth: 400,
         minHeight: 400,
-        title: "openvocs",
+        title: "OpenVOCS",
         backgroundColor: "#1e1e1e",
         icon: path.join(__dirname, "build", "icon.png"),
         webPreferences: {
@@ -164,7 +233,15 @@ function create_main_window() {
         }
     });
 
+    if (settings.window && is_on_screen(settings.window.bounds)) {
+        if (settings.window.fullscreen)
+            main_window.setFullScreen(true);
+        else if (settings.window.maximized)
+            main_window.maximize();
+    }
+
     restrict_navigation(main_window.webContents);
+    keep_title(main_window);
 
     main_window.webContents.on("will-navigate", (event, url) => {
         if (url === "openvocs:retry") // loader buttons
@@ -178,11 +255,6 @@ function create_main_window() {
     main_window.webContents.on("did-fail-load", (event, code, description, url, is_main_frame) => {
         if (is_main_frame && code !== -3 && is_trusted_url(url)) // -3: aborted
             setImmediate(() => schedule_retry(describe_error(description)));
-    });
-
-    main_window.on("close", () => {
-        settings.bounds = main_window.getBounds();
-        save_settings();
     });
 
     main_window.on("closed", () => { main_window = undefined; });
@@ -215,7 +287,7 @@ async function load_front_end() {
             signal: AbortSignal.any([controller.signal, AbortSignal.timeout(PROBE_TIMEOUT * 1000)])
         });
         response.body?.cancel().catch(() => { });
-        if (response.status >= 500) // e.g. reverse proxy up, openvocs not yet
+        if (response.status >= 500) // e.g. reverse proxy up, OpenVOCS not yet
             throw new Error("HTTP " + response.status + " " + response.statusText);
     } catch (error) {
         if (!controller.signal.aborted)
@@ -280,7 +352,7 @@ function open_admin_window(server = settings.server, focus = true) {
     admin_window = new BrowserWindow({
         width: 1280,
         height: 800,
-        title: "openvocs admin",
+        title: "OpenVOCS Admin",
         backgroundColor: "#1e1e1e",
         icon: path.join(__dirname, "build", "icon.png"),
         webPreferences: {
@@ -290,6 +362,7 @@ function open_admin_window(server = settings.server, focus = true) {
         }
     });
     restrict_navigation(admin_window.webContents, () => admin_server);
+    keep_title(admin_window);
     admin_window.on("closed", () => { admin_window = undefined; });
     admin_window.loadURL(admin_url(server)).catch(() => { });
 }
@@ -301,12 +374,12 @@ function open_settings_window() {
     }
     settings_window = new BrowserWindow({
         width: 520,
-        height: 370,
+        height: 470,
         resizable: false,
         minimizable: false,
         parent: main_window,
         modal: process.platform !== "darwin" && !!main_window,
-        title: "Server Settings",
+        title: "OpenVOCS Client Settings",
         webPreferences: {
             preload: path.join(__dirname, "settings", "preload.js"),
             contextIsolation: true,
@@ -320,8 +393,17 @@ function open_settings_window() {
 }
 
 ipcMain.handle("settings:get", () => {
-    let { bounds, ...editable } = settings;
-    return editable;
+    return { server: settings.server, windowPosition: describe_window_position() };
+});
+
+ipcMain.handle("window:save", () => {
+    save_window_position();
+    return describe_window_position();
+});
+
+ipcMain.handle("window:reset", () => {
+    reset_window_position();
+    return describe_window_position();
 });
 
 // admin URL for the address typed in the settings window (saved or not)
@@ -366,7 +448,7 @@ ipcMain.handle("settings:cancel", () => {
 function build_menu() {
     let is_mac = process.platform === "darwin";
     let settings_item = {
-        label: "Server Settings…",
+        label: "OpenVOCS Client Settings…",
         accelerator: "CmdOrCtrl+,",
         click: open_settings_window
     };
@@ -413,7 +495,7 @@ if (!app.requestSingleInstanceLock()) {
         }
     });
 
-    // Windows: groups the taskbar entry and labels notifications as openvocs
+    // Windows: groups the taskbar entry and labels notifications as OpenVOCS
     if (process.platform === "win32")
         app.setAppUserModelId("com.space-cu.openvocs");
 

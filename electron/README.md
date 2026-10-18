@@ -1,6 +1,6 @@
-# openvocs desktop
+# OpenVOCS desktop
 
-Electron shell for the openvocs web front-end. The app does not include the interface: it
+Electron shell for the OpenVOCS web front-end. The app does not include the interface: it
 always loads it from the server at `https://<server>/app/vocs/`, so it always matches the
 server's version and its `config_vocs.js`.
 
@@ -12,10 +12,15 @@ npm install
 npm start
 ```
 
-The first time it runs, the app opens **Server Settings**. Enter the host of your openvocs server
+The first time it runs, the app opens **OpenVOCS Client Settings**. Enter the host of your OpenVOCS server
 (for example `openvocs.example.org` or `10.0.0.5:443`). You can reopen this window later with
-**openvocs > Server Settings…** (`Cmd/Ctrl+,`). It also has an **Open admin page** link, which opens
+**OpenVOCS > OpenVOCS Client Settings…** (`Cmd/Ctrl+,`). It also has an **Open admin page** link, which opens
 `https://<server>/app/vocs_admin/` in a separate window so the voice session keeps running.
+
+**Window position:** in OpenVOCS Client Settings, **Save current position** stores where the main window
+is, along with its size and whether it is maximized or full screen. The app reopens it there. If
+that display is no longer connected, the window opens centered instead. **Reset** clears the
+saved position and moves the window back to the default size, centered.
 
 Settings are saved in `settings.json` in the app's user-data folder:
 
@@ -29,7 +34,7 @@ Settings are saved in `settings.json` in the app's user-data folder:
   the server with a request on `/app/vocs/` and only then loads the interface. If the
   check fails (connection refused, no answer within 20 s, certificate error or HTTP 5xx), the
   loader shows the error and retries after 1, 2, 4 and 8 s, then every 15 s. After a failure,
-  or after 10 s of waiting, it also offers **Retry now** and **Server Settings…**.
+  or after 10 s of waiting, it also offers **Retry now** and **OpenVOCS Client Settings…**.
 
 - The app grants microphone, speaker selection, fullscreen and notifications automatically,
   but only to the configured server. On macOS, it asks for microphone

@@ -46,7 +46,7 @@ function update_loader(new_status) {
     dom.body.classList.toggle("retrying", retrying);
     dom.body.classList.toggle("idle", !configured);
     dom.title.textContent = !configured ? "No server configured"
-        : retrying ? "Server not reachable" : "Connecting to openvocs";
+        : retrying ? "Server not reachable" : "Connecting to OpenVOCS";
     dom.server.textContent = status.server || "";
     dom.error.textContent = retrying ? status.error || "" : "";
     dom.error.hidden = !dom.error.textContent;

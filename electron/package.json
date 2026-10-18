@@ -1,8 +1,8 @@
 {
   "name": "openvocs-desktop",
-  "productName": "openvocs",
+  "productName": "OpenVOCS",
   "version": "0.1.0",
-  "description": "Desktop client for the openvocs voice conferencing front-end",
+  "description": "Desktop client for the OpenVOCS voice conferencing front-end",
   "main": "main.js",
   "license": "Apache-2.0",
   "author": "Space Cargo Unlimited S.A.S.",
@@ -21,7 +21,7 @@
   },
   "build": {
     "appId": "com.space-cu.openvocs",
-    "productName": "openvocs",
+    "productName": "OpenVOCS",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -39,7 +39,7 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "openvocs needs the microphone to talk in voice loops."
+        "NSMicrophoneUsageDescription": "OpenVOCS needs the microphone to talk in voice loops."
       },
       "target": [
         "dmg",
